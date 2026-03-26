@@ -3194,19 +3194,14 @@ namespace librealsense
             return false;
         }
 
-        void v4l2_video_md_syncer::enqueue_buffer_before_throwing_it(const sync_buffer& sb) const
+        void v4l2_video_md_syncer::enqueue_buffer_before_throwing_it(const sync_buffer& sb)
         {
             // Enqueue of buffer before throwing its content away
             LOG_DEBUG_V4L("video_md_syncer - Enqueue buf " << std::dec << sb._buffer_index << " for fd " << sb._fd << " before dropping it");
             if (xioctl(sb._fd, VIDIOC_QBUF, sb._v4l2_buf.get()) < 0)
             {
-                static auto last_log_time = std::chrono::steady_clock::now() - std::chrono::seconds(10);
-                auto now = std::chrono::steady_clock::now();
-                if (now - last_log_time >= std::chrono::seconds(5))
-                {
-                    LOG_ERROR("xioctl(VIDIOC_QBUF) failed when requesting new frame! fd: " << sb._fd << " error: " << strerror(errno));
-                    last_log_time = now;
-                }
+                int err = errno;  // Capture errno immediately before it can be modified
+                log_qbuf_error_throttled(sb._fd, err);
             }
         }
 
@@ -3216,15 +3211,20 @@ namespace librealsense
             LOG_DEBUG_V4L("video_md_syncer - Enqueue buf " << std::dec << sync_queue.front()._buffer_index << " for fd " << sync_queue.front()._fd << " before dropping it");
             if (xioctl(sync_queue.front()._fd, VIDIOC_QBUF, sync_queue.front()._v4l2_buf.get()) < 0)
             {
-                static auto last_log_time = std::chrono::steady_clock::now() - std::chrono::seconds(10);
-                auto now = std::chrono::steady_clock::now();
-                if (now - last_log_time >= std::chrono::seconds(5))
-                {
-                    LOG_ERROR("xioctl(VIDIOC_QBUF) failed when requesting new frame! fd: " << sync_queue.front()._fd << " error: " << strerror(errno));
-                    last_log_time = now;
-                }
+                int err = errno;  // Capture errno immediately before it can be modified
+                log_qbuf_error_throttled(sync_queue.front()._fd, err);
             }
             sync_queue.pop();
+        }
+
+        void v4l2_video_md_syncer::log_qbuf_error_throttled(int fd, int err)
+        {
+            auto now = std::chrono::steady_clock::now();
+            if (now - _last_qbuf_error_log_time >= std::chrono::seconds(5))
+            {
+                LOG_ERROR("xioctl(VIDIOC_QBUF) failed when requesting new frame! fd: " << fd << " error: " << strerror(err));
+                _last_qbuf_error_log_time = now;
+            }
         }
 
 
