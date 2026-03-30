@@ -3200,7 +3200,7 @@ namespace librealsense
             LOG_DEBUG_V4L("video_md_syncer - Enqueue buf " << std::dec << sb._buffer_index << " for fd " << sb._fd << " before dropping it");
             if (xioctl(sb._fd, VIDIOC_QBUF, sb._v4l2_buf.get()) < 0)
             {
-                int err = errno;  // Capture errno immediately before it can be modified
+                int err = errno;  // Capture errno immediately as it can be modified in other threads
                 log_qbuf_error_throttled(sb._fd, err);
             }
         }
@@ -3211,7 +3211,7 @@ namespace librealsense
             LOG_DEBUG_V4L("video_md_syncer - Enqueue buf " << std::dec << sync_queue.front()._buffer_index << " for fd " << sync_queue.front()._fd << " before dropping it");
             if (xioctl(sync_queue.front()._fd, VIDIOC_QBUF, sync_queue.front()._v4l2_buf.get()) < 0)
             {
-                int err = errno;  // Capture errno immediately before it can be modified
+                int err = errno;  // Capture errno immediately as it can be modified in other threads
                 log_qbuf_error_throttled(sync_queue.front()._fd, err);
             }
             sync_queue.pop();

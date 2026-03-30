@@ -259,7 +259,7 @@ namespace librealsense
         public:
             v4l2_video_md_syncer()
                 : _is_ready(false)
-                , _last_qbuf_error_log_time(std::chrono::steady_clock::now() - std::chrono::seconds(10))
+                , _last_qbuf_error_log_time(std::chrono::steady_clock::time_point::min())
             {}
 
             struct sync_buffer
